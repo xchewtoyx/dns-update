@@ -16,7 +16,7 @@ class DNSUpdateController(controller.CementBaseController):
   def detect_ip(self):
     ip_lookup = urllib2.urlopen(IP_DETECT_URL)
     my_address = ip_lookup.read()
-    self.app.log.info('Detected IP address: %s' % my_address)
+    self.app.log.debug('Detected IP address: %s' % my_address)
     ip_lookup.close()
     return my_address
 
