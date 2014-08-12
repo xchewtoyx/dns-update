@@ -20,11 +20,10 @@ class DNSUpdateController(controller.CementBaseController):
     ip_lookup.close()
     return my_address
 
-  def update_ip(self):
+  def update_ip(self, hostname):
     ip_setter = urllib2.urlopen(
       IP_UPDATE_URL % (self.app.config.get('base', 'username'),
-                       self.app.config.get('base', 'password'),
-                       self.app.config.get('base', 'hostname'),))
+                       self.app.config.get('base', 'password'), hostname),))
     response = ip_setter.read()
     self.app.log.debug('Update result: %r' % response)
     ip_setter.close()
@@ -32,10 +31,12 @@ class DNSUpdateController(controller.CementBaseController):
   @controller.expose(hide=True, aliases=['run'])
   def default(self):
     'Detect local ip address and update DNS if required'
-    registered_ip = socket.gethostbyname(
-      self.app.config.get('base', 'hostname'))
-    if registered_ip != self.detect_ip():
-      self.update_ip()
+    host_config = self.app.config.get('base', 'hostname')
+    hosts = host_config.split(',')
+    for hostname in hosts:
+      registered_ip = socket.gethostbyname(hostname)
+      if registered_ip != self.detect_ip():
+        self.update_ip(hostname)
 
 def run():
   dnsupdater = foundation.CementApp(
