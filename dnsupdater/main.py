@@ -1,7 +1,7 @@
 import socket
-import urllib2
 
 from cement.core import controller, foundation, handler
+import pycurl
 
 IP_DETECT_URL = 'http://rgh-go-sandpit.appspot.com/myip/'
 IP_UPDATE_URL = (
@@ -13,17 +13,22 @@ class DNSUpdateController(controller.CementBaseController):
     description = 'DNS Updater'
     config_defaults = {}
 
+  def _receive_addr(self, data):
+    self._my_address = data
+
   def detect_ip(self):
-    ip_lookup = urllib2.urlopen(IP_DETECT_URL)
-    my_address = ip_lookup.read()
-    self.app.log.debug('Detected IP address: %s' % my_address)
-    ip_lookup.close()
-    return my_address
+    curl = pycurl.Curl()
+    curl.setopt(pycurl.URL, IP_DETECT_URL)
+    curl.setopt(pycurl.IPRESOLVE, pycurl.IPRESOLVE_V4)
+    curl.setopt(pycurl.WRITEFUNCTION, self._receive_addr)
+    curl.perform()
+    self.app.log.debug('Detected IP address: %s' % self._my_address)
+    return self._my_address
 
   def update_ip(self, hostname):
     ip_setter = urllib2.urlopen(
       IP_UPDATE_URL % (self.app.config.get('base', 'username'),
-                       self.app.config.get('base', 'password'), hostname),))
+                       self.app.config.get('base', 'password'), hostname),)
     response = ip_setter.read()
     self.app.log.debug('Update result: %r' % response)
     ip_setter.close()
