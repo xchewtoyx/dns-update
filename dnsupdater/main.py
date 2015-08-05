@@ -36,9 +36,18 @@ class DNSUpdateController(controller.CementBaseController):
     'Detect local ip address and update DNS if required'
     host_config = self.app.config.get('base', 'hostname')
     hosts = host_config.split(',')
+    self.app.log.debug('Detected hosts: %r' % hosts)
     for hostname in hosts:
-      registered_ip = socket.gethostbyname(hostname)
-      if registered_ip != self.detect_ip():
+      self.app.log.debug('Detecting IP info for host %r' % hostname) 
+      try:
+        registered_ip = socket.gethostbyname(hostname)
+      except socket.error:
+        registered_ip = None
+      current_ip = self.detect_ip()
+      self.app.log.debug('IP info for host %r (%r->%r)' % (
+          hostname, registered_ip, current_ip))
+      if registered_ip != current_ip:
+        self.app.log.info('Processing IP change for host %r' % hostname)
         self.update_ip(hostname)
 
 def run():
@@ -47,5 +56,8 @@ def run():
   try:
     dnsupdater.setup()
     dnsupdater.run()
+  except Exception as err:
+    print repr(err)
+    raise
   finally:
     dnsupdater.close()
